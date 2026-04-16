@@ -1,0 +1,9 @@
+node-v20.11.1-win-x64/**
+**/*.md
+**/*.html
+**/*.css
+**/*.js
+**/*.json
+**/*.bat
+!Code.js
+!appsscript.json

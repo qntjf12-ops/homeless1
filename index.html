@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CareCheck - 사례관리</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <p id="current-date">2026년 4월 16일</p>
+            <h1>임시주거 사례관리</h1>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-content">
+            <!-- 1. Dashboard View -->
+            <section id="dashboard-view">
+                <!-- Stats Overview Upgraded -->
+                <div class="dashboard-stats">
+                    <div class="progress-container">
+                        <svg class="progress-ring" width="80" height="80">
+                            <circle class="progress-ring__under" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" r="34" cx="40" cy="40"/>
+                            <circle id="progress-circle" class="progress-ring__circle" stroke="var(--accent-success)" stroke-width="8" stroke-dasharray="213.6" stroke-dashoffset="213.6" fill="transparent" r="34" cx="40" cy="40"/>
+                        </svg>
+                        <div id="progress-percent" class="progress-text">0%</div>
+                    </div>
+                    <div class="stats-info">
+                        <div class="stat-item">
+                            <h3>이번 주 상담 현황</h3>
+                            <div class="value highlight"><span id="checked-count">0</span> / <span id="total-count">0</span></div>
+                            <p id="pending-label" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">수요일 리셋 기준</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="search-container">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="search-input" class="search-input" placeholder="이름으로 검색...">
+                </div>
+
+                <!-- Client List Area -->
+                <div id="list-container" class="client-list">
+                    <!-- JS will populate cards here -->
+                </div>
+            </section>
+
+            <!-- 2. Stats View (Upgraded for Weekly History) -->
+            <section id="stats-view" style="display: none;">
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 1.15rem;">주차별 상담 성과</h2>
+                        <span style="font-size: 0.65rem; color: var(--primary-light); background: rgba(79, 70, 229, 0.1); padding: 4px 8px; border-radius: 6px;">수요일 00시 리셋</span>
+                    </div>
+
+                    <!-- 주차별 차트 영역 -->
+                    <div id="stats-chart" class="weekly-chart" style="display: flex; justify-content: space-between; align-items: flex-end; height: 140px; padding: 20px 10px; background: rgba(255,255,255,0.03); border-radius: 20px; margin-bottom: 30px; border: 1px solid var(--glass-border);">
+                        <!-- JS가 막대그래프를 주입함 -->
+                    </div>
+
+                    <!-- 미완료자 명단 영역 -->
+                    <div id="pending-list" class="pending-section">
+                        <!-- JS가 선택된 주차의 미완료자를 주입함 -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-item active" id="tab-dashboard" onclick="switchView('dashboard')">
+            <i data-lucide="layout-dashboard"></i>
+            <span>대시보드</span>
+        </div>
+        <div class="nav-item" id="tab-stats" onclick="switchView('stats')">
+            <i data-lucide="pie-chart"></i>
+            <span>통계</span>
+        </div>
+        <div class="nav-item" id="sync-btn">
+            <i data-lucide="refresh-cw"></i>
+            <span>동기화</span>
+        </div>
+    </nav>
+
+    <!-- Floating Action Button (FAB) -->
+    <button id="fab-add" class="fab-btn" onclick="openAddModal()">
+        <i data-lucide="plus"></i>
+    </button>
+
+    <!-- Memo Modal -->
+    <div id="memo-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="modal-title">상담 메모</h3>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeModal()"></i>
+            </div>
+            <p id="modal-subtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;"></p>
+            <div id="modal-content-area">
+                <!-- JS will inject dynamic fields here -->
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-check" onclick="deleteClient()" style="width: 48px; border-color: var(--accent-warning); color: var(--accent-warning);">
+                    <i data-lucide="trash-2"></i>
+                </button>
+                <button class="btn-primary" onclick="saveDetail()" style="flex: 1;">저장하기</button>
+                <button class="btn-check" onclick="closeModal()" style="width: auto; padding: 0 20px; background: rgba(255,255,255,0.05);">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Client Modal -->
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-content large">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="user-plus" style="color: var(--primary-light);"></i>
+                    신규 대상자 등록
+                </h3>
+                <i data-lucide="x" style="cursor: pointer;" onclick="closeAddModal()"></i>
+            </div>
+            
+            <form id="add-form" class="add-form">
+                <div class="form-grid">
+                    <div class="form-item">
+                        <label>이름 (필수)</label>
+                        <input type="text" id="add-name" placeholder="성함 입력" required>
+                    </div>
+                    <div class="form-item">
+                        <label>성별</label>
+                        <select id="add-gender">
+                            <option value="남">남성</option>
+                            <option value="여">여성</option>
+                        </select>
+                    </div>
+                    <div class="form-item">
+                        <label>생년월일</label>
+                        <input type="date" id="add-birthday" required>
+                    </div>
+                    <div class="form-item">
+                        <label>분류</label>
+                        <input type="text" id="add-category" placeholder="예: 임시거주" required>
+                    </div>
+                </div>
+
+                <div class="form-item">
+                    <label>거주지 (시설명 및 호수)</label>
+                    <input type="text" id="add-address" placeholder="예: 행복고시원 101호" required>
+                </div>
+
+                <div class="form-item">
+                    <label>사례 관리자</label>
+                    <input type="text" id="add-manager" placeholder="담당자 성함" required>
+                </div>
+
+                <div class="date-calc-section" style="background: rgba(79, 70, 229, 0.05); padding: 16px; border-radius: 16px; margin-top: 10px; border: 1px dashed var(--primary-light);">
+                    <div class="form-item">
+                        <label style="color: var(--primary-light); font-weight: bold;">월세지원일 (기준 날짜)</label>
+                        <input type="date" id="add-rent-date" onchange="calculateDates()" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                        <div class="form-item">
+                            <label>주거지원 종료일 (+1m)</label>
+                            <input type="date" id="add-end-date" readonly style="background: rgba(0,0,0,0.2); color: var(--accent-success);">
+                        </div>
+                        <div class="form-item">
+                            <label>종결예정일 (+3m)</label>
+                            <input type="date" id="add-term-date" readonly style="background: rgba(0,0,0,0.2); color: var(--accent-warning);">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-primary" onclick="addNewClient()" style="margin-top: 24px; height: 56px; font-size: 1.1rem; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);">
+                    구글 시트에 명단 등록
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
