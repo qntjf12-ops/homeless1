@@ -536,30 +536,47 @@ textarea {
     to { transform: translateY(0); }
 }
 
-/* Exception Client Highlighting */
+/* Exception Client Highlighting Upgraded */
 .client-card.is-exception {
-    border-left: 5px solid #ef4444; /* 왼쪽 빨간 포인트 선 */
-    background: rgba(239, 68, 68, 0.08); /* 아주 옅은 빨간 배경 */
+    border-left: 6px solid #ef4444;
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.1), transparent);
     border-top: 1px solid rgba(239, 68, 68, 0.2);
     border-right: 1px solid rgba(239, 68, 68, 0.2);
     border-bottom: 1px solid rgba(239, 68, 68, 0.2);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.client-card.is-exception::after {
+    content: '관리대상';
+    position: absolute;
+    top: 6px;
+    right: 12px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .exception-icon {
     width: 18px;
     height: 18px;
     color: #ef4444 !important;
-    animation: pulse-red 2s infinite;
+    animation: pulse-red 2s infinite ease-in-out;
 }
 
 @keyframes pulse-red {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
+    0% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.5)); }
+    50% { transform: scale(1.15); opacity: 0.7; filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+    100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.5)); }
 }
 
 .client-card.is-exception .client-name {
-    color: #fca5a5; /* 이름 색상 살짝 변경 */
+    color: #fca5a5;
     font-weight: 800;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
