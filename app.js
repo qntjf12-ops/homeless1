@@ -8,7 +8,8 @@ let historyData = []; // 과거 상담 이력 데이터
 let searchTerm = "";
 let currentEditId = null;
 let selectedStatWeekIdx = 4; // 선택된 통계 주차 (기본값: 이번 주, 0~4)
-let groupsState = {}; // [추가] 각 그룹의 접힘 상태 저장 (true: 열림, false: 닫힘)
+let groupsState = {}; // 각 그룹의 접힘 상태 저장
+let exceptions = []; // [추가] 예외 인원 명단 (이름 배열)
 
 // [추가] 수요일 00:00 기준 주간 시작일 계산 함수
 function getWedStart(date = new Date()) {
@@ -36,6 +37,7 @@ async function init() {
         // [호환성 로직] 서버 배포 전(배열)과 배포 후(객체) 모두 대응
         const rawClients = Array.isArray(result) ? result : (result.clients || []);
         historyData = Array.isArray(result) ? [] : (result.history || []);
+        exceptions = Array.isArray(result) ? [] : (result.exceptions || []); // [추가] 예외 명단 저장
         
         // 1. 메인 명단 매핑 및 '이번 주 수요일 이후 상담 여부' 판단
         clients = rawClients.map(item => {
@@ -124,12 +126,15 @@ function renderList() {
         // 그룹 내 인원들 렌더링
         groups[groupName].forEach(client => {
             const roomInfo = client.address.replace(groupName, '').trim();
+            const isException = exceptions.includes(client.name); // [추가] 예외 인원 확인
+            
             const card = document.createElement('div');
-            card.className = 'client-card';
+            card.className = `client-card ${isException ? 'is-exception' : ''}`;
             card.innerHTML = `
                 <div class="client-info">
                     <h4 style="flex-wrap: wrap; row-gap: 4px;">
-                        <span>${client.name} (${client.gender})</span>
+                        <span class="client-name">${client.name} (${client.gender})</span>
+                        ${isException ? '<i data-lucide="hospital" class="exception-icon"></i>' : ''}
                         <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 2px;">${roomInfo}</span>
                         <span class="badge" style="margin-left: auto;">${client.category}</span>
                     </h4>

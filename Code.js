@@ -25,10 +25,20 @@ function doGet(e) {
   }
   var historyData = historySheet.getDataRange().getValues().slice(1);
 
+  // 3. 예외명단 가져오기 (없으면 생성)
+  var exceptionSheet = ss.getSheetByName("예외명단");
+  if (!exceptionSheet) {
+    exceptionSheet = ss.insertSheet("예외명단");
+    exceptionSheet.getRange(1, 1).setValue("이름");
+  }
+  var exceptionData = exceptionSheet.getDataRange().getValues().slice(1);
+  var exceptions = exceptionData.map(function(row) { return row[0]; }).filter(String);
+
   // 통합 데이터 전송
   var result = {
     clients: clients,
-    history: historyData
+    history: historyData,
+    exceptions: exceptions
   };
   
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);

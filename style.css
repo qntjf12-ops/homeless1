@@ -535,3 +535,31 @@ textarea {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
 }
+
+/* Exception Client Highlighting */
+.client-card.is-exception {
+    border-left: 5px solid #ef4444; /* 왼쪽 빨간 포인트 선 */
+    background: rgba(239, 68, 68, 0.08); /* 아주 옅은 빨간 배경 */
+    border-top: 1px solid rgba(239, 68, 68, 0.2);
+    border-right: 1px solid rgba(239, 68, 68, 0.2);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+.exception-icon {
+    width: 18px;
+    height: 18px;
+    color: #ef4444 !important;
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.client-card.is-exception .client-name {
+    color: #fca5a5; /* 이름 색상 살짝 변경 */
+    font-weight: 800;
+}
