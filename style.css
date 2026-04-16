@@ -536,30 +536,32 @@ textarea {
     to { transform: translateY(0); }
 }
 
-/* Exception Client Highlighting Upgraded */
+/* Exception Client Highlighting Upgraded - Forced Priority */
 .client-card.is-exception {
-    border-left: 6px solid #ef4444;
-    background: linear-gradient(to right, rgba(239, 68, 68, 0.1), transparent);
-    border-top: 1px solid rgba(239, 68, 68, 0.2);
-    border-right: 1px solid rgba(239, 68, 68, 0.2);
-    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
-    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
+    border-left: 8px solid #ef4444 !important; /* 더 두꺼운 빨간 선 */
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.15), rgba(30, 41, 59, 0.7)) !important;
+    border-top: 1px solid rgba(239, 68, 68, 0.3) !important;
+    border-right: 1px solid rgba(239, 68, 68, 0.3) !important;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.3) !important;
+    box-shadow: 0 4px 25px rgba(239, 68, 68, 0.2) !important;
     position: relative;
     overflow: hidden;
+    z-index: 5;
 }
 
 .client-card.is-exception::after {
-    content: '관리대상';
+    content: '관리대상' !important;
     position: absolute;
-    top: 6px;
+    top: 8px;
     right: 12px;
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: white !important;
+    background: #ef4444 !important; /* 빨간 배경으로 변경하여 더 눈에 띄게 */
+    padding: 2px 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
 }
 
 .exception-icon {

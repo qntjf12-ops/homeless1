@@ -129,11 +129,18 @@ function renderList() {
             // [강화] 양쪽 모두 공백 제거 및 소문자 변환 후 '포함' 여부 확인 (가장 강력한 방식)
             let isException = false;
             try {
-                const clean = (str) => String(str || '').replace(/\s/g, '').toLowerCase();
+                // 한글 정규화(NFC) 및 특수문자/공백 제거로 매칭률 극대화
+                const clean = (str) => String(str || '')
+                    .normalize('NFC') 
+                    .replace(/[^a-zA-Z0-9가-힣]/g, '')
+                    .toLowerCase();
+
                 isException = Array.isArray(exceptions) && exceptions.some(ex => {
                     const cleanEx = clean(ex);
                     const cleanClient = clean(client.name);
-                    return cleanEx.includes(cleanClient) || cleanClient.includes(cleanEx);
+                    // 어느 한 쪽에라도 검색어가 포함되면 매칭 (매우 강력한 방식)
+                    return (cleanEx.length > 1 && cleanClient.length > 1) && 
+                           (cleanEx.includes(cleanClient) || cleanClient.includes(cleanEx));
                 });
             } catch (e) {
                 console.error("Exception match error:", e);
