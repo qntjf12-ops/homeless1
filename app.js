@@ -127,12 +127,17 @@ function renderList() {
         groups[groupName].forEach(client => {
             const roomInfo = client.address.replace(groupName, '').trim();
             // [강화] 양쪽 모두 공백 제거 및 소문자 변환 후 '포함' 여부 확인 (가장 강력한 방식)
-            const clean = (str) => String(str || '').replace(/\s/g, '').toLowerCase();
-            const isException = exceptions.some(ex => {
-                const cleanEx = clean(ex);
-                const cleanClient = clean(client.name);
-                return cleanEx.includes(cleanClient) || cleanClient.includes(cleanEx);
-            }); 
+            let isException = false;
+            try {
+                const clean = (str) => String(str || '').replace(/\s/g, '').toLowerCase();
+                isException = Array.isArray(exceptions) && exceptions.some(ex => {
+                    const cleanEx = clean(ex);
+                    const cleanClient = clean(client.name);
+                    return cleanEx.includes(cleanClient) || cleanClient.includes(cleanEx);
+                });
+            } catch (e) {
+                console.error("Exception match error:", e);
+            }
             
             const card = document.createElement('div');
             card.className = `client-card ${isException ? 'is-exception' : ''}`;
