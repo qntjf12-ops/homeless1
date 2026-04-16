@@ -1,6 +1,6 @@
 // CareCheck - 수요일 리셋 및 주차별 통계 엔진 (Vanilla JS)
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwybzedRg7UBLOk762UQ8mnZyp213OY-9sg2Efx-NNodFZiopJ5H9-bI6K3l9PvannUKg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxHq-s9AT23OGHLvIe2keG4q6bK9qsfumCrIH9XqC64E-ZaazNBX0syMOStcEdQrnNLlA/exec";
 
 // 2. State Management
 let clients = []; 
