@@ -140,7 +140,7 @@ function renderList() {
                 <div class="client-info">
                     <h4 style="flex-wrap: wrap; row-gap: 4px;">
                         <span class="client-name">${client.name} (${client.gender})</span>
-                        ${isException ? '<i data-lucide="hospital" class="exception-icon"></i>' : ''}
+                        ${isException ? '<i data-lucide="hospital" class="exception-icon" style="stroke-width: 3px;"></i>' : ''}
                         <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 2px;">${roomInfo}</span>
                         <span class="badge" style="margin-left: auto;">${client.category}</span>
                     </h4>

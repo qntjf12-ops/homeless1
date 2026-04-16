@@ -563,9 +563,12 @@ textarea {
 }
 
 .exception-icon {
-    width: 18px;
-    height: 18px;
+    display: inline-block;
+    vertical-align: middle;
+    width: 20px;
+    height: 20px;
     color: #ef4444 !important;
+    margin-left: 4px;
     animation: pulse-red 2s infinite ease-in-out;
 }
 
