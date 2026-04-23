@@ -181,7 +181,7 @@ header p {
 .client-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px; /* 카드 사이 간격 축소 */
 }
 
 .group-header {
@@ -228,8 +228,8 @@ header p {
     background: var(--card-bg);
     backdrop-filter: blur(8px);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 16px;
+    border-radius: 12px; /* 라운드 소폭 축소 */
+    padding: 10px 14px; /* 여백 축소 */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -238,12 +238,12 @@ header p {
 }
 
 .client-info h4 {
-    font-size: 1.05rem;
+    font-size: 0.95rem; /* 폰트 소폭 축소 */
     font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .badge {
@@ -277,9 +277,9 @@ header p {
 }
 
 .btn-check {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 38px; /* 크기 축소 */
+    height: 38px;
+    border-radius: 10px;
     border: none;
     background: #f1f5f9;
     color: var(--text-muted);
@@ -297,9 +297,9 @@ header p {
 }
 
 .btn-memo {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 38px; /* 크기 축소 */
+    height: 38px;
+    border-radius: 10px;
     border: 1px solid var(--glass-border);
     background: transparent;
     color: var(--text-muted);
