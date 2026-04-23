@@ -77,41 +77,106 @@ function doPost(e) {
       return ContentService.createTextOutput("Success Delete").setMimeType(ContentService.MimeType.TEXT);
     }
   }
-  
-  // 3. 기존 셀 수정 모드 + 이력 누적
-  var lastCol = sheet.getLastColumn();
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var colIndex = headers.indexOf(params.columnName) + 1;
-  
-  if (colIndex === 0) {
-    sheet.getRange(1, lastCol + 1).setValue(params.columnName);
-    colIndex = lastCol + 1;
-  }
-  
-  sheet.getRange(params.rowId, colIndex).setValue(params.value);
 
-  // [추가] 상담 완료 시 '상담이력' 시트에 누적 기록
-  if (params.columnName === "상담여부" && (params.value === "V" || params.value === "O")) {
-    var historySheet = ss.getSheetByName("상담이력") || ss.insertSheet("상담이력");
-    if (historySheet.getLastRow() === 0) {
-      historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자"]);
+  // 3. 예외 명단 추가
+  if (params.action === "addException") {
+    var exSheet = ss.getSheetByName("예외명단") || ss.insertSheet("예외명단");
+    if (exSheet.getLastRow() === 0) exSheet.appendRow(["이름"]);
+    exSheet.appendRow([params.name]);
+    return ContentService.createTextOutput("Success Add Exception").setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  // 4. 예외 명단 제거
+  if (params.action === "removeException") {
+    var exSheet = ss.getSheetByName("예외명단");
+    if (exSheet) {
+      var data = exSheet.getDataRange().getValues();
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (data[i][0] == params.name) {
+          exSheet.deleteRow(i + 1);
+        }
+      }
+    }
+    return ContentService.createTextOutput("Success Remove Exception").setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  // 5. 기존 셀 수정 모드 (단일 또는 복수 업데이트 지원)
+  var updates = params.updates || (params.columnName ? [{ columnName: params.columnName, value: params.value }] : []);
+  if (updates.length > 0) {
+    var lastCol = sheet.getLastColumn();
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+    updates.forEach(function(update) {
+      var colIndex = headers.indexOf(update.columnName) + 1;
+      if (colIndex === 0) {
+        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(update.columnName);
+        headers.push(update.columnName);
+        colIndex = headers.length;
+      }
+      sheet.getRange(params.rowId, colIndex).setValue(update.value);
+
+      // [추가] 상담 완료 시 '상담이력' 시트에 기록
+      if (update.columnName === "상담여부" && (update.value === "V" || update.value === "O")) {
+        var historySheet = ss.getSheetByName("상담이력") || ss.insertSheet("상담이력");
+        if (historySheet.getLastRow() === 0) {
+          historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자"]);
+        }
+        var rowData = sheet.getRange(params.rowId, 1, 1, headers.length).getValues()[0];
+        historySheet.appendRow([
+          new Date(), 
+          rowData[headers.indexOf("이름")] || "", 
+          rowData[headers.indexOf("성별")] || "", 
+          rowData[headers.indexOf("거주지") !== -1 ? headers.indexOf("거주지") : headers.indexOf("주소")] || "", 
+          rowData[headers.indexOf("사례 관리자")] || ""
+        ]);
+      }
+    });
+    return ContentService.createTextOutput("Success Update").setMimeType(ContentService.MimeType.TEXT);
+  }
+
+  return ContentService.createTextOutput("No Action").setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
+ * [추가] 구글 시트 직접 입력 시 자동 날짜 계산 트리거
+ * '월세지원일' 입력 시 '주거지원 종료일(+1m)', '종결예정일(+3m)' 자동 계산
+ */
+function onEdit(e) {
+  var range = e.range;
+  var sheet = range.getSheet();
+  
+  // 1. 헤더 정보를 읽어 열 위치 파악
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return;
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  
+  var rentDateIdx = headers.indexOf("월세지원일") + 1;
+  var endDateIdx = headers.indexOf("주거지원 종료일") + 1;
+  var termDateIdx = headers.indexOf("종결예정일") + 1;
+  
+  // 2. 수정된 칸이 '월세지원일' 열이고, 데이터 행(2행 이상)인 경우 작동
+  if (range.getColumn() == rentDateIdx && range.getRow() > 1 && rentDateIdx > 0) {
+    var rentDateValue = range.getValue();
+    
+    // 값이 비어있으면 날짜 칸들도 비움
+    if (!rentDateValue) {
+      if (endDateIdx > 0) sheet.getRange(range.getRow(), endDateIdx).clearContent();
+      if (termDateIdx > 0) sheet.getRange(range.getRow(), termDateIdx).clearContent();
+      return;
     }
     
-    // 현재 행의 기본 정보 가져오기
-    var rowData = sheet.getRange(params.rowId, 1, 1, lastCol).getValues()[0];
-    var nameIdx = headers.indexOf("이름");
-    var sexIdx = headers.indexOf("성별");
-    var addrIdx = headers.indexOf("거주지") !== -1 ? headers.indexOf("거주지") : headers.indexOf("주소");
-    var managerIdx = headers.indexOf("사례 관리자");
-
-    historySheet.appendRow([
-      new Date(), 
-      rowData[nameIdx] || "", 
-      rowData[sexIdx] || "", 
-      rowData[addrIdx] || "", 
-      rowData[managerIdx] || ""
-    ]);
+    var rentDate = new Date(rentDateValue);
+    // 유효한 날짜인지 체크
+    if (!isNaN(rentDate.getTime())) {
+      // 주거지원 종료일 (+1개월)
+      var endDate = new Date(rentDate.getTime());
+      endDate.setMonth(endDate.getMonth() + 1);
+      if (endDateIdx > 0) sheet.getRange(range.getRow(), endDateIdx).setValue(endDate);
+      
+      // 종결예정일 (+3개월)
+      var termDate = new Date(rentDate.getTime());
+      termDate.setMonth(termDate.getMonth() + 3);
+      if (termDateIdx > 0) sheet.getRange(range.getRow(), termDateIdx).setValue(termDate);
+    }
   }
-
-  return ContentService.createTextOutput("Success Update").setMimeType(ContentService.MimeType.TEXT);
 }

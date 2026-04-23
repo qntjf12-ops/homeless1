@@ -585,3 +585,40 @@ textarea {
     font-weight: 800;
     text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
+
+/* Exception Toggle Button in Modal */
+.btn-exception-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-exception-toggle.active {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+.btn-exception-toggle i {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-exception-toggle.active i {
+    color: #ef4444;
+    animation: pulse-red 2s infinite ease-in-out;
+}
+
+.detail-grid .detail-item label {
+    margin-top: 0; /* Grid handles spacing */
+}

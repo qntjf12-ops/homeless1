@@ -24,6 +24,14 @@ function getWedStart(date = new Date()) {
 
 const CURRENT_WED_START = getWedStart();
 
+// [추가] 날짜 포맷 정리 함수 (시간 제거)
+function formatDate(val) {
+    if (!val || val === "-") return "-";
+    // ISO string이나 Date 객체, 혹은 문자열에서 날짜 부분만 추출 (YYYY-MM-DD)
+    const dateStr = typeof val === 'string' ? val : new Date(val).toISOString();
+    return dateStr.substring(0, 10);
+}
+
 // Initialize from Google Sheets
 async function init() {
     updateDate();
@@ -45,7 +53,7 @@ async function init() {
             return {
                 id: item.rowId,
                 name: item["이름"] || item["대상자명"] || "이름 없음",
-                birthday: item["생년월일"] || item["생일"] || "-",
+                birthday: formatDate(item["생년월일"] || item["생일"]),
                 gender: item["성별"] || "-",
                 address: item["주소"] || item["거주지"] || item["현거주지"] || item["주거지"] || "-",
                 category: item["분류"] || "-",
@@ -135,13 +143,14 @@ function renderList() {
                     .replace(/[^a-zA-Z0-9가-힣]/g, '')
                     .toLowerCase();
 
+                const cleanClient = clean(client.name);
                 isException = Array.isArray(exceptions) && exceptions.some(ex => {
                     const cleanEx = clean(ex);
-                    const cleanClient = clean(client.name);
                     // 어느 한 쪽에라도 검색어가 포함되면 매칭 (매우 강력한 방식)
                     return (cleanEx.length > 1 && cleanClient.length > 1) && 
                            (cleanEx.includes(cleanClient) || cleanClient.includes(cleanEx));
                 });
+                client.isException = isException; // 상태 저장
             } catch (e) {
                 console.error("Exception match error:", e);
             }
@@ -255,7 +264,7 @@ function renderStats() {
         chart.appendChild(barWrapper);
     });
 
-    // 4. 선택된 주차의 미완료자 명단 표시
+    // 6. 선택된 주차의 미완료자 명단 표시
     const activeWeek = weeklyData[selectedStatWeekIdx];
     const missed = clients.filter(c => !activeWeek.completedNames.includes(c.name));
 
@@ -354,11 +363,45 @@ function openDetail(id) {
     document.getElementById('modal-subtitle').textContent = `행 번호: ${id}`;
     
     const contentArea = document.getElementById('modal-content-area');
-    const skipFields = ['rowId', '이름', '생년월일', '성별', '주소', '상담여부', '메모', '상담일자'];
+    
+    // 주요 필드들 (항상 상단에 표시)
+    const mainFields = [
+        { key: '이름', label: '성함', value: client.name },
+        { key: '생년월일', label: '생년월일', value: formatDate(client.birthday), type: 'date' },
+        { key: '주소', label: '거주지(건물+호수)', value: client.address },
+        { key: '분류', label: '분류', value: client.category },
+        { key: '사례 관리자', label: '담당 관리자', value: client.manager }
+    ];
+
+    const skipFields = ['rowId', '상담여부', '메모', '상담일자', ...mainFields.map(f => f.key)];
     
     let html = `
-        <div class="detail-section"><label>상담 메모</label><textarea id="memo-textarea">${client.memo || ""}</textarea></div>
-        <div class="extra-fields"><h4 style="margin-top: 20px;">기타 정보</h4>
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <button id="exception-toggle-btn" class="btn-exception-toggle ${client.isException ? 'active' : ''}" onclick="toggleException('${client.name}')">
+                <i data-lucide="hospital"></i>
+                <span>${client.isException ? '관리대상 해제' : '관리대상 지정'}</span>
+            </button>
+        </div>
+        
+        <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+    `;
+
+    mainFields.forEach(f => {
+        html += `
+            <div class="detail-item" style="${f.key === '주소' ? 'grid-column: span 2;' : ''}">
+                <label>${f.label}</label>
+                <input type="${f.type || 'text'}" class="detail-input" data-key="${f.key}" value="${f.value || ""}">
+            </div>
+        `;
+    });
+
+    html += `</div>
+        <div class="detail-section">
+            <label>상담 메모</label>
+            <textarea id="memo-textarea" placeholder="특이사항을 입력하세요...">${client.memo || ""}</textarea>
+        </div>
+        <div class="extra-fields">
+            <h4 style="margin-top: 24px; margin-bottom: 12px; font-size: 0.9rem; color: var(--primary-light);">추가 필드</h4>
     `;
 
     Object.keys(rawData).forEach(key => {
@@ -373,6 +416,37 @@ function openDetail(id) {
     lucide.createIcons();
 }
 
+async function toggleException(name) {
+    const client = clients.find(c => c.name === name);
+    if (!client) return;
+
+    const isAdding = !client.isException;
+    const btn = document.getElementById('exception-toggle-btn');
+    
+    // UI 낙관적 업데이트
+    client.isException = isAdding;
+    btn.classList.toggle('active', isAdding);
+    btn.querySelector('span').textContent = isAdding ? '관리대상 해제' : '관리대상 지정';
+    
+    if (window.navigator.vibrate) window.navigator.vibrate(50);
+
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: isAdding ? "addException" : "removeException",
+                name: name
+            })
+        });
+        // 전체 캐시 갱신을 위해 init() 호출대신 로컬 데이터만 살짝 건드려도 되지만, 
+        // 확실하게 하기 위해 리스트만 다시 그립니다.
+        renderList();
+    } catch (e) {
+        alert("상태 변경 실패");
+        init();
+    }
+}
+
 function closeModal() { document.getElementById('memo-modal').style.display = 'none'; }
 function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
 function openAddModal() { document.getElementById('add-form').reset(); document.getElementById('add-modal').style.display = 'flex'; }
@@ -381,13 +455,25 @@ async function saveDetail() {
     const text = document.getElementById('memo-textarea').value;
     const inputs = document.querySelectorAll('.detail-input');
     const updates = [{ columnName: "메모", value: text }];
-    inputs.forEach(input => updates.push({ columnName: input.getAttribute('data-key'), value: input.value }));
+    inputs.forEach(input => {
+        updates.push({ columnName: input.getAttribute('data-key'), value: input.value });
+    });
 
     closeModal();
-    for (const update of updates) {
-        await fetch(API_URL, { method: "POST", body: JSON.stringify({ rowId: currentEditId, columnName: update.columnName, value: update.value })});
+    
+    try {
+        await fetch(API_URL, { 
+            method: "POST", 
+            body: JSON.stringify({ 
+                rowId: currentEditId, 
+                updates: updates 
+            })
+        });
+        init();
+    } catch (e) {
+        alert("일부 저장 실패");
+        init();
     }
-    init();
 }
 
 async function deleteClient() {
@@ -400,11 +486,16 @@ async function deleteClient() {
 function calculateDates() {
     const rent = document.getElementById('add-rent-date').value;
     if (!rent) return;
-    const d = new Date(rent);
-    d.setMonth(d.getMonth() + 1);
-    document.getElementById('add-end-date').value = d.toISOString().split('T')[0];
-    d.setMonth(d.getMonth() + 3);
-    document.getElementById('add-term-date').value = d.toISOString().split('T')[0];
+    
+    // 주거지원 종료일 (+1개월)
+    const d1 = new Date(rent);
+    d1.setMonth(d1.getMonth() + 1);
+    document.getElementById('add-end-date').value = d1.toISOString().split('T')[0];
+    
+    // 종결예정일 (+3개월)
+    const d2 = new Date(rent);
+    d2.setMonth(d2.getMonth() + 3);
+    document.getElementById('add-term-date').value = d2.toISOString().split('T')[0];
 }
 
 async function addNewClient() {
