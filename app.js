@@ -282,33 +282,59 @@ function renderStats() {
         chart.appendChild(barWrapper);
     });
 
-    // 6. 선택된 주차의 미완료자 명단 표시
+    // 6. 미완료자 통계 (관리자별 요약 + 컴팩트 태그 뷰)
     const activeWeek = weeklyData[selectedStatWeekIdx];
     const missed = clients.filter(c => !activeWeek.completedNames.includes(c.name));
+
+    // 관리자별 미완료 인원 집계
+    const managerCounts = {};
+    missed.forEach(c => {
+        managerCounts[c.manager] = (managerCounts[c.manager] || 0) + 1;
+    });
+
+    // 건물별 그룹화 (태그 배치를 위해)
+    const missedGroups = {};
+    missed.forEach(c => {
+        const building = c.address.split(' ')[0] || "기타";
+        if (!missedGroups[building]) missedGroups[building] = [];
+        missedGroups[building].push(c);
+    });
 
     let html = `
         <div class="pending-section">
             <h3 style="font-size: 0.9rem; margin-bottom: 12px; border-left: 4px solid var(--accent-warning); padding-left: 8px;">
                 ${activeWeek.label} 주차 미완료자 (${missed.length}명)
             </h3>
-            <div class="pending-grid">
+            
+            <!-- 관리자 요약 바 -->
+            <div class="manager-summary-bar">
+                ${Object.entries(managerCounts).map(([name, count]) => `
+                    <div class="mgr-summary-item">
+                        <span class="mgr-name">${name}</span>
+                        <span class="mgr-count">${count}</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div class="pending-compact-grid">
     `;
 
     if (missed.length === 0) {
         html += `<p style="text-align: center; color: var(--accent-success); padding: 20px;">🎉 완벽합니다! 전원 상담 완료</p>`;
     } else {
-        missed.forEach(c => {
+        // 건물별로 블록 생성
+        Object.keys(missedGroups).sort().forEach(building => {
             html += `
-                <div class="pending-item" style="background: var(--card-bg); padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600;">${c.name}</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">${c.address.split(' ')[0]}</div>
+                <div class="building-tag-block">
+                    <div class="building-tag-label">${building}</div>
+                    <div class="tag-container">
+                        ${missedGroups[building].map(c => `
+                            <div class="name-tag" onclick="switchView('dashboard'); openDetail(${c.id});">
+                                <span class="tag-name">${c.name}</span>
+                                <span class="tag-room">${c.address.replace(building, '').trim()}</span>
+                            </div>
+                        `).join('')}
                     </div>
-                    ${selectedStatWeekIdx === 4 ? `
-                        <button class="btn-check" onclick="switchView('dashboard'); openDetail(${c.id});" style="width: 32px; height: 32px; border-radius: 50%;">
-                            <i data-lucide="chevron-right"></i>
-                        </button>
-                    ` : ''}
                 </div>
             `;
         });
