@@ -276,29 +276,40 @@ header p {
     gap: 8px;
 }
 
-.btn-check {
-    width: 30px; /* 초슬림 크기 */
-    height: 30px;
+.check-group {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-type {
+    padding: 6px 10px;
     border-radius: 8px;
-    border: none;
+    border: 1px solid var(--glass-border);
     background: #f1f5f9;
     color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
 }
 
-.btn-check i, .btn-memo i {
-    width: 14px !important; /* 아이콘 크기 축소 */
-    height: 14px !important;
-}
-
-.btn-check.active {
+.btn-visit.active {
     background: var(--accent-success);
     color: white;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    border-color: var(--accent-success);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-absent.active {
+    background: #f59e0b;
+    color: white;
+    border-color: #f59e0b;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-memo i {
+    width: 14px !important;
+    height: 14px !important;
 }
 
 .btn-memo {

@@ -75,6 +75,7 @@ async function init() {
                 category: item["분류"] || "-",
                 manager: item["사례 관리자"] || item["사례관리자"] || "-",
                 dateChecked: item["상담일자"] || "", 
+                checkType: (lastCheckDate && lastCheckDate >= CURRENT_WED_START) ? (item["상담여부"] || "") : "",
                 // [핵심] 이번 주 수요일 00시 이후에 상담 받았는지 체크
                 checkedThisWeek: lastCheckDate && lastCheckDate >= CURRENT_WED_START,
                 memo: item["메모"] || item["비고"] || "",
@@ -193,9 +194,10 @@ function renderList() {
                     <button class="btn-memo" onclick="openDetail(${client.id})">
                         <i data-lucide="file-text"></i>
                     </button>
-                    <button class="btn-check ${client.checkedThisWeek ? 'active' : ''}" onclick="toggleCheck(${client.id})">
-                        <i data-lucide="check"></i>
-                    </button>
+                    <div class="check-group">
+                        <button class="btn-type btn-visit ${client.checkType === '대면' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '대면')">대면</button>
+                        <button class="btn-type btn-absent ${client.checkType === '부재' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '부재')">부재</button>
+                    </div>
                 </div>
             `;
             groupContent.appendChild(card);
@@ -325,45 +327,41 @@ function switchView(viewName) {
     lucide.createIcons();
 }
 
-async function toggleCheck(rowId) {
+async function toggleCheck(rowId, type) {
     const client = clients.find(c => c.id === rowId);
     if (!client) return;
 
     const today = new Date();
-    const newValue = !client.checkedThisWeek;
+    // 이미 같은 타입이 선택되어 있으면 해제(빈값), 아니면 새로운 타입 선택
+    const newValue = client.checkType === type ? "" : type;
     
-    client.checkedThisWeek = newValue;
+    client.checkType = newValue;
+    client.checkedThisWeek = !!newValue;
     client.dateChecked = newValue ? today.toISOString() : "";
     renderList();
     updateStats();
 
     try {
-        // [수요일 리셋 로직] 상담여부 클릭 시 서버 전송 (이력은 서버 Code.js에서 자동 누적함)
+        // 벌크 업데이트를 사용하여 상담여부와 상담일자를 한 번에 전송
         await fetch(API_URL, {
             method: "POST",
             body: JSON.stringify({
                 rowId: rowId,
-                columnName: "상담여부",
-                value: newValue ? "V" : ""
-            })
-        });
-        
-        await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                rowId: rowId,
-                columnName: "상담일자",
-                value: newValue ? today.toISOString().split('T')[0] : ""
+                updates: [
+                    { columnName: "상담여부", value: newValue },
+                    { columnName: "상담일자", value: newValue ? today.toISOString().split('T')[0] : "" }
+                ]
             })
         });
 
         if (window.navigator.vibrate) window.navigator.vibrate(50);
         if (newValue) {
-            // 이력 데이터 낙관적 업데이트
-            historyData.push([new Date().toISOString(), client.name, client.gender, client.address, client.manager]);
+            // 이력 데이터 낙관적 업데이트 (상담방식 포함)
+            historyData.push([new Date().toISOString(), client.name, client.gender, client.address, client.manager, newValue]);
             if (document.getElementById('stats-view').style.display !== 'none') renderStats();
         }
     } catch (error) {
+        console.error("Save error:", error);
         alert("저장 실패");
         init();
     }

@@ -116,10 +116,10 @@ function doPost(e) {
       sheet.getRange(params.rowId, colIndex).setValue(update.value);
 
       // [추가] 상담 완료 시 '상담이력' 시트에 기록
-      if (update.columnName === "상담여부" && (update.value === "V" || update.value === "O")) {
+      if (update.columnName === "상담여부" && (update.value === "대면" || update.value === "부재")) {
         var historySheet = ss.getSheetByName("상담이력") || ss.insertSheet("상담이력");
         if (historySheet.getLastRow() === 0) {
-          historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자"]);
+          historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자", "상담방식"]);
         }
         var rowData = sheet.getRange(params.rowId, 1, 1, headers.length).getValues()[0];
         historySheet.appendRow([
@@ -127,7 +127,8 @@ function doPost(e) {
           rowData[headers.indexOf("이름")] || "", 
           rowData[headers.indexOf("성별")] || "", 
           rowData[headers.indexOf("거주지") !== -1 ? headers.indexOf("거주지") : headers.indexOf("주소")] || "", 
-          rowData[headers.indexOf("사례 관리자")] || ""
+          rowData[headers.indexOf("사례 관리자")] || "",
+          update.value // '대면' 또는 '부재' 기록
         ]);
       }
     });
