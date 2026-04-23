@@ -132,6 +132,8 @@ function renderList() {
         return;
     }
 
+    const fragment = document.createDocumentFragment();
+
     sortedGroupNames.forEach(groupName => {
         if (groupsState[groupName] === undefined) groupsState[groupName] = true;
         const isOpen = groupsState[groupName];
