@@ -3,15 +3,15 @@
 :root {
     --primary: #4f46e5;
     --primary-light: #6366f1;
-    --bg-dark: #f8fafc; /* 밝은 배경색 */
-    --card-bg: rgba(255, 255, 255, 0.8); /* 흰색 반투명 카드 */
-    --text-main: #0f172a; /* 짙은 텍스트 */
-    --text-muted: #64748b; /* 보조 텍스트 */
-    --accent-success: #059669;
-    --accent-warning: #d97706;
-    --glass-border: rgba(0, 0, 0, 0.05); /* 어두운 투명 보더 */
-    --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.1); /* 더 부드러운 그림자 */
-    --accent-indigo: #4338ca;
+    --bg-dark: #ffffff; /* 완전한 흰색 배경 */
+    --card-bg: rgba(255, 255, 255, 0.95); /* 더 불투명하고 밝은 카드 */
+    --text-main: #1e293b; 
+    --text-muted: #64748b;
+    --accent-success: #10b981;
+    --accent-warning: #f59e0b;
+    --glass-border: rgba(0, 0, 0, 0.08); 
+    --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.06); 
+    --accent-indigo: #4f46e5;
 }
 
 * {
@@ -29,7 +29,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Glassmorphism Background - Light version */
+/* Glassmorphism Background - Ultra Bright */
 body::before {
     content: '';
     position: fixed;
@@ -37,7 +37,7 @@ body::before {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, #e0e7ff 0%, #f8fafc 100%);
+    background: radial-gradient(circle, #f0f4ff 0%, #ffffff 100%);
     z-index: -1;
 }
 
@@ -92,7 +92,7 @@ header p {
     right: 0;
     width: 100px;
     height: 100px;
-    background: radial-gradient(circle, rgba(79, 70, 229, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.05) 0%, transparent 70%);
     z-index: 0;
 }
 
@@ -281,7 +281,7 @@ header p {
     height: 48px;
     border-radius: 12px;
     border: none;
-    background: rgba(148, 163, 184, 0.1);
+    background: #f1f5f9;
     color: var(--text-muted);
     display: flex;
     align-items: center;
