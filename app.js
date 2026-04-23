@@ -286,18 +286,12 @@ function renderStats() {
     const activeWeek = weeklyData[selectedStatWeekIdx];
     const missed = clients.filter(c => !activeWeek.completedNames.includes(c.name));
 
-    // 관리자별 미완료 인원 집계
-    const managerCounts = {};
+    // 관리자별 그룹화 (태그 배치를 위해)
+    const missedByManager = {};
     missed.forEach(c => {
-        managerCounts[c.manager] = (managerCounts[c.manager] || 0) + 1;
-    });
-
-    // 건물별 그룹화 (태그 배치를 위해)
-    const missedGroups = {};
-    missed.forEach(c => {
-        const building = c.address.split(' ')[0] || "기타";
-        if (!missedGroups[building]) missedGroups[building] = [];
-        missedGroups[building].push(c);
+        const mgr = c.manager || "미지정";
+        if (!missedByManager[mgr]) missedByManager[mgr] = [];
+        missedByManager[mgr].push(c);
     });
 
     let html = `
@@ -306,15 +300,7 @@ function renderStats() {
                 ${activeWeek.label} 주차 미완료자 (${missed.length}명)
             </h3>
             
-            <!-- 관리자 요약 바 -->
-            <div class="manager-summary-bar">
-                ${Object.entries(managerCounts).map(([name, count]) => `
-                    <div class="mgr-summary-item">
-                        <span class="mgr-name">${name}</span>
-                        <span class="mgr-count">${count}</span>
-                    </div>
-                `).join('')}
-            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; padding-left: 8px;">* 관리자별 관리 인원 현황</p>
 
             <div class="pending-compact-grid">
     `;
@@ -322,16 +308,16 @@ function renderStats() {
     if (missed.length === 0) {
         html += `<p style="text-align: center; color: var(--accent-success); padding: 20px;">🎉 완벽합니다! 전원 상담 완료</p>`;
     } else {
-        // 건물별로 블록 생성
-        Object.keys(missedGroups).sort().forEach(building => {
+        // 관리자별로 블록 생성
+        Object.keys(missedByManager).sort().forEach(mgr => {
             html += `
                 <div class="building-tag-block">
-                    <div class="building-tag-label">${building}</div>
+                    <div class="building-tag-label">${mgr} (${missedByManager[mgr].length}명)</div>
                     <div class="tag-container">
-                        ${missedGroups[building].map(c => `
+                        ${missedByManager[mgr].map(c => `
                             <div class="name-tag" onclick="switchView('dashboard'); openDetail(${c.id});">
                                 <span class="tag-name">${c.name}</span>
-                                <span class="tag-room">${c.address.replace(building, '').trim()}</span>
+                                <span class="tag-room">${c.address.split(' ')[0]} ${c.address.replace(c.address.split(' ')[0], '').trim()}</span>
                             </div>
                         `).join('')}
                     </div>
