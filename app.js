@@ -8,6 +8,7 @@ let historyData = []; // 과거 상담 이력 데이터
 let searchTerm = "";
 let currentEditId = null;
 let selectedStatWeekIdx = 4; // 선택된 통계 주차 (기본값: 이번 주, 0~4)
+let statsGroupBy = 'manager'; // 통계 정렬 기준 (manager 또는 building)
 let groupsState = {}; // 각 그룹의 접힘 상태 저장
 let exceptions = []; // [추가] 예외 인원 명단 (이름 배열)
 
@@ -282,16 +283,22 @@ function renderStats() {
         chart.appendChild(barWrapper);
     });
 
-    // 6. 미완료자 통계 (관리자별 요약 + 컴팩트 태그 뷰)
+    // 6. 미완료자 통계 (관리자별/건물별 토글 기능 포함)
     const activeWeek = weeklyData[selectedStatWeekIdx];
     const missed = clients.filter(c => !activeWeek.completedNames.includes(c.name));
 
-    // 관리자별 그룹화 (태그 배치를 위해)
-    const missedByManager = {};
+    // 그룹화 데이터 생성
+    const groupedData = {};
     missed.forEach(c => {
-        const mgr = c.manager || "미지정";
-        if (!missedByManager[mgr]) missedByManager[mgr] = [];
-        missedByManager[mgr].push(c);
+        let key = "";
+        if (statsGroupBy === 'manager') {
+            key = c.manager || "미지정";
+        } else {
+            key = c.address.split(' ')[0] || "기타";
+        }
+        
+        if (!groupedData[key]) groupedData[key] = [];
+        groupedData[key].push(c);
     });
 
     let html = `
@@ -300,7 +307,11 @@ function renderStats() {
                 ${activeWeek.label} 주차 미완료자 (${missed.length}명)
             </h3>
             
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; padding-left: 8px;">* 관리자별 관리 인원 현황</p>
+            <!-- 정렬 기준 스위치 -->
+            <div class="stats-toggle-bar">
+                <button class="toggle-btn ${statsGroupBy === 'manager' ? 'active' : ''}" onclick="changeStatsGroup('manager')">관리자별</button>
+                <button class="toggle-btn ${statsGroupBy === 'building' ? 'active' : ''}" onclick="changeStatsGroup('building')">주거지별</button>
+            </div>
 
             <div class="pending-compact-grid">
     `;
@@ -308,18 +319,24 @@ function renderStats() {
     if (missed.length === 0) {
         html += `<p style="text-align: center; color: var(--accent-success); padding: 20px;">🎉 완벽합니다! 전원 상담 완료</p>`;
     } else {
-        // 관리자별로 블록 생성
-        Object.keys(missedByManager).sort().forEach(mgr => {
+        // 그룹별로 블록 생성
+        Object.keys(groupedData).sort().forEach(groupKey => {
             html += `
                 <div class="building-tag-block">
-                    <div class="building-tag-label">${mgr} (${missedByManager[mgr].length}명)</div>
+                    <div class="building-tag-label">${groupKey} (${groupedData[groupKey].length}명)</div>
                     <div class="tag-container">
-                        ${missedByManager[mgr].map(c => `
-                            <div class="name-tag" onclick="switchView('dashboard'); openDetail(${c.id});">
-                                <span class="tag-name">${c.name}</span>
-                                <span class="tag-room">${c.address.split(' ')[0]} ${c.address.replace(c.address.split(' ')[0], '').trim()}</span>
-                            </div>
-                        `).join('')}
+                        ${groupedData[groupKey].map(c => {
+                            const subInfo = statsGroupBy === 'manager' 
+                                ? c.address.split(' ')[0] // 관리자별일 때는 건물명 표시
+                                : c.address.replace(groupKey, '').trim(); // 건물별일 때는 호수 표시
+                            
+                            return `
+                                <div class="name-tag" onclick="switchView('dashboard'); openDetail(${c.id});">
+                                    <span class="tag-name">${c.name}</span>
+                                    <span class="tag-room">${subInfo}</span>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -328,6 +345,12 @@ function renderStats() {
     html += `</div></div>`;
     pendingList.innerHTML = html;
     lucide.createIcons();
+}
+
+// 통계 정렬 기준 변경 함수
+function changeStatsGroup(mode) {
+    statsGroupBy = mode;
+    renderStats();
 }
 
 function switchView(viewName) {
