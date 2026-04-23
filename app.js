@@ -25,6 +25,17 @@ function getWedStart(date = new Date()) {
 
 const CURRENT_WED_START = getWedStart();
 
+// [추가] XSS 방지를 위한 HTML 특수문자 클리닝 함수 (보안 강화)
+function escapeHTML(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // [추가] 날짜 포맷 정리 함수 (시간 제거 및 오류 방지)
 function formatDate(val) {
     if (!val || val === "-") return "-";
@@ -88,7 +99,7 @@ async function init() {
         updateStats();
     } catch (error) {
         console.error("Data fetch error:", error);
-        container.innerHTML = `<div style="text-align: center; color: var(--accent-warning); padding: 20px;">데이터를 불러오지 못했습니다.</div>`;
+        container.innerHTML = `<div style="text-align: center; color: var(--accent-warning); padding: 20px;">데이터를 불러오지 못했습니다.<br><span style="font-size:0.8rem;opacity:0.7;">${escapeHTML(error.message)}</span></div>`;
     }
 }
 
@@ -122,40 +133,37 @@ function renderList() {
     }
 
     sortedGroupNames.forEach(groupName => {
-        // 그룹 상태 초기화 (기본값: 열림)
         if (groupsState[groupName] === undefined) groupsState[groupName] = true;
         const isOpen = groupsState[groupName];
 
-        // 그룹 헤더 추가 (클릭 시 접기/펼치기)
         const header = document.createElement('div');
         header.className = `group-header ${isOpen ? '' : 'collapsed'}`;
         header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
                 <i data-lucide="building-2"></i> 
-                <span>${groupName} (${groups[groupName].length}명)</span>
+                <span>${escapeHTML(groupName)} (${groups[groupName].length}명)</span>
             </div>
             <i data-lucide="chevron-down" style="width: 18px; height: 18px;"></i>
         `;
         
         header.onclick = () => {
             groupsState[groupName] = !groupsState[groupName];
-            renderList(); // 다시 그려서 상태 반영
+            renderList();
         };
-        container.appendChild(header);
+        fragment.appendChild(header);
 
-        // 그룹 내용(명단) 컨테이너
         const groupContent = document.createElement('div');
         groupContent.className = 'group-content';
         if (!isOpen) groupContent.style.maxHeight = '0';
-        else groupContent.style.maxHeight = '5000px'; // 넉넉하게 설정
+        else groupContent.style.maxHeight = '5000px';
 
-        // 그룹 내 인원들 렌더링
+        let innerHTMLString = '';
+
         groups[groupName].forEach(client => {
             const roomInfo = client.address.replace(groupName, '').trim();
-            // [강화] 양쪽 모두 공백 제거 및 소문자 변환 후 '포함' 여부 확인 (가장 강력한 방식)
+            // 한글 정규화(NFC) 및 특수문자/공백 제거로 매칭률 극대화
             let isException = false;
             try {
-                // 한글 정규화(NFC) 및 특수문자/공백 제거로 매칭률 극대화
                 const clean = (str) => String(str || '')
                     .normalize('NFC') 
                     .replace(/[^a-zA-Z0-9가-힣]/g, '')
@@ -164,49 +172,52 @@ function renderList() {
                 const cleanClient = clean(client.name);
                 isException = Array.isArray(exceptions) && exceptions.some(ex => {
                     const cleanEx = clean(ex);
-                    // 어느 한 쪽에라도 검색어가 포함되면 매칭 (매우 강력한 방식)
                     return (cleanEx.length > 1 && cleanClient.length > 1) && 
                            (cleanEx.includes(cleanClient) || cleanClient.includes(cleanEx));
                 });
-                client.isException = isException; // 상태 저장
+                client.isException = isException;
             } catch (e) {
                 console.error("Exception match error:", e);
             }
             
-            const card = document.createElement('div');
-            card.className = `client-card ${isException ? 'is-exception' : ''}`;
-            card.innerHTML = `
-                <div class="client-info">
-                    <h4 style="flex-wrap: wrap; row-gap: 4px;">
-                        <span class="client-name">${client.name} (${client.gender})</span>
-                        ${isException ? '<i data-lucide="hospital" class="exception-icon" style="stroke-width: 3px;"></i>' : ''}
-                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 2px;">${roomInfo}</span>
-                        <span class="badge" style="margin-left: auto;">${client.category}</span>
-                    </h4>
-                    <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">${client.birthday}</span>
-                        <div class="manager-info" style="color: var(--primary-light);">
-                            <i data-lucide="user-check" style="width: 12px; height: 12px;"></i>
-                            <span style="font-weight: 600;">${client.manager}</span>
+            innerHTMLString += `
+                <div class="client-card ${isException ? 'is-exception' : ''}">
+                    <div class="client-info">
+                        <h4 style="flex-wrap: wrap; row-gap: 4px;">
+                            <span class="client-name">${escapeHTML(client.name)} (${escapeHTML(client.gender)})</span>
+                            ${isException ? '<i data-lucide="hospital" class="exception-icon" style="stroke-width: 3px;"></i>' : ''}
+                            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 2px;">${escapeHTML(roomInfo)}</span>
+                            <span class="badge" style="margin-left: auto;">${escapeHTML(client.category)}</span>
+                        </h4>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(client.birthday)}</span>
+                            <div class="manager-info" style="color: var(--primary-light);">
+                                <i data-lucide="user-check" style="width: 12px; height: 12px;"></i>
+                                <span style="font-weight: 600;">${escapeHTML(client.manager)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-memo" onclick="openDetail(${client.id})">
+                            <i data-lucide="file-text"></i>
+                        </button>
+                        <div class="check-group">
+                            <button class="btn-type btn-visit ${client.checkType === '대면' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '대면')">대면</button>
+                            <button class="btn-type btn-absent ${client.checkType === '부재' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '부재')">부재</button>
                         </div>
                     </div>
                 </div>
-                <div class="card-actions">
-                    <button class="btn-memo" onclick="openDetail(${client.id})">
-                        <i data-lucide="file-text"></i>
-                    </button>
-                    <div class="check-group">
-                        <button class="btn-type btn-visit ${client.checkType === '대면' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '대면')">대면</button>
-                        <button class="btn-type btn-absent ${client.checkType === '부재' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '부재')">부재</button>
-                    </div>
-                </div>
             `;
-            groupContent.appendChild(card);
         });
-        container.appendChild(groupContent);
+        groupContent.innerHTML = innerHTMLString;
+        fragment.appendChild(groupContent);
     });
+    container.appendChild(fragment);
+    
+    // 이전에 여러 번 호출되던 것을 렌더링 끝난 후 한 번만 호출하여 성능 향상
     lucide.createIcons();
 }
+
 
 function updateStats() {
     const total = clients.length;
@@ -304,7 +315,7 @@ function renderStats() {
     let html = `
         <div class="pending-section">
             <h3 style="font-size: 0.9rem; margin-bottom: 12px; border-left: 4px solid var(--accent-warning); padding-left: 8px;">
-                ${activeWeek.label} 주차 미완료자 (${missed.length}명)
+                ${escapeHTML(activeWeek.label)} 주차 미완료자 (${missed.length}명)
             </h3>
             
             <!-- 정렬 기준 스위치 -->
@@ -319,21 +330,20 @@ function renderStats() {
     if (missed.length === 0) {
         html += `<p style="text-align: center; color: var(--accent-success); padding: 20px;">🎉 완벽합니다! 전원 상담 완료</p>`;
     } else {
-        // 그룹별로 블록 생성
         Object.keys(groupedData).sort().forEach(groupKey => {
             html += `
                 <div class="building-tag-block">
-                    <div class="building-tag-label">${groupKey} (${groupedData[groupKey].length}명)</div>
+                    <div class="building-tag-label">${escapeHTML(groupKey)} (${groupedData[groupKey].length}명)</div>
                     <div class="tag-container">
                         ${groupedData[groupKey].map(c => {
                             const subInfo = statsGroupBy === 'manager' 
-                                ? c.address.split(' ')[0] // 관리자별일 때는 건물명 표시
-                                : c.address.replace(groupKey, '').trim(); // 건물별일 때는 호수 표시
+                                ? c.address.split(' ')[0] 
+                                : c.address.replace(groupKey, '').trim(); 
                             
                             return `
                                 <div class="name-tag" onclick="switchView('dashboard'); openDetail(${c.id});">
-                                    <span class="tag-name">${c.name}</span>
-                                    <span class="tag-room">${subInfo}</span>
+                                    <span class="tag-name">${escapeHTML(c.name)}</span>
+                                    <span class="tag-room">${escapeHTML(subInfo)}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -391,13 +401,12 @@ async function toggleCheck(rowId, type) {
 
         if (window.navigator.vibrate) window.navigator.vibrate(50);
         if (newValue) {
-            // 이력 데이터 낙관적 업데이트 (상담방식 포함)
             historyData.push([new Date().toISOString(), client.name, client.gender, client.address, client.manager, newValue]);
             if (document.getElementById('stats-view').style.display !== 'none') renderStats();
         }
     } catch (error) {
         console.error("Save error:", error);
-        alert("저장 실패");
+        alert(`저장 실패: ${error.message || '네트워크 오류'}`);
         init();
     }
 }
@@ -408,25 +417,24 @@ function openDetail(id) {
     const client = clients.find(c => c.id === id);
     const rawData = client._raw || {};
     
-    document.getElementById('modal-title').textContent = `${client.name} 상세 정보`;
+    document.getElementById('modal-title').textContent = `${escapeHTML(client.name)} 상세 정보`;
     document.getElementById('modal-subtitle').textContent = `행 번호: ${id}`;
     
     const contentArea = document.getElementById('modal-content-area');
     
-    // 주요 필드들 (항상 상단에 표시)
     const mainFields = [
-        { key: '이름', label: '성함', value: client.name },
-        { key: '생년월일', label: '생년월일', value: formatDate(client.birthday), type: 'date' },
-        { key: '주소', label: '거주지(건물+호수)', value: client.address },
-        { key: '분류', label: '분류', value: client.category },
-        { key: '사례 관리자', label: '담당 관리자', value: client.manager }
+        { key: '이름', label: '성함', value: escapeHTML(client.name) },
+        { key: '생년월일', label: '생년월일', value: escapeHTML(formatDate(client.birthday)), type: 'date' },
+        { key: '주소', label: '거주지(건물+호수)', value: escapeHTML(client.address) },
+        { key: '분류', label: '분류', value: escapeHTML(client.category) },
+        { key: '사례 관리자', label: '담당 관리자', value: escapeHTML(client.manager) }
     ];
 
     const skipFields = ['rowId', '상담여부', '메모', '상담일자', ...mainFields.map(f => f.key)];
     
     let html = `
         <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-            <button id="exception-toggle-btn" class="btn-exception-toggle ${client.isException ? 'active' : ''}" onclick="toggleException('${client.name}')">
+            <button id="exception-toggle-btn" class="btn-exception-toggle ${client.isException ? 'active' : ''}" onclick="toggleException('${escapeHTML(client.name)}')">
                 <i data-lucide="hospital"></i>
                 <span>${client.isException ? '관리대상 해제' : '관리대상 지정'}</span>
             </button>
@@ -438,8 +446,8 @@ function openDetail(id) {
     mainFields.forEach(f => {
         html += `
             <div class="detail-item" style="${f.key === '주소' ? 'grid-column: span 2;' : ''}">
-                <label>${f.label}</label>
-                <input type="${f.type || 'text'}" class="detail-input" data-key="${f.key}" value="${f.value || ""}">
+                <label>${escapeHTML(f.label)}</label>
+                <input type="${f.type || 'text'}" class="detail-input" data-key="${escapeHTML(f.key)}" value="${f.value || ""}">
             </div>
         `;
     });
@@ -447,7 +455,7 @@ function openDetail(id) {
     html += `</div>
         <div class="detail-section">
             <label>상담 메모</label>
-            <textarea id="memo-textarea" placeholder="특이사항을 입력하세요...">${client.memo || ""}</textarea>
+            <textarea id="memo-textarea" placeholder="특이사항을 입력하세요...">${escapeHTML(client.memo || "")}</textarea>
         </div>
         <div class="extra-fields">
             <h4 style="margin-top: 24px; margin-bottom: 12px; font-size: 0.9rem; color: var(--primary-light);">추가 필드</h4>
@@ -455,7 +463,7 @@ function openDetail(id) {
 
     Object.keys(rawData).forEach(key => {
         if (!skipFields.includes(key)) {
-            html += `<div class="detail-item"><label>${key}</label><input type="text" class="detail-input" data-key="${key}" value="${rawData[key] || ""}"></div>`;
+            html += `<div class="detail-item"><label>${escapeHTML(key)}</label><input type="text" class="detail-input" data-key="${escapeHTML(key)}" value="${escapeHTML(rawData[key] || "")}"></div>`;
         }
     });
 
@@ -490,8 +498,9 @@ async function toggleException(name) {
         // 전체 캐시 갱신을 위해 init() 호출대신 로컬 데이터만 살짝 건드려도 되지만, 
         // 확실하게 하기 위해 리스트만 다시 그립니다.
         renderList();
-    } catch (e) {
-        alert("상태 변경 실패");
+    } catch (error) {
+        console.error("Exception toggle error:", error);
+        alert(`상태 변경 실패: ${error.message || '네트워크 오류'}`);
         init();
     }
 }
@@ -519,8 +528,9 @@ async function saveDetail() {
             })
         });
         init();
-    } catch (e) {
-        alert("일부 저장 실패");
+    } catch (error) {
+        console.error("Save detail error:", error);
+        alert(`일부 저장 실패: ${error.message || '네트워크 오류'}`);
         init();
     }
 }
