@@ -181,7 +181,7 @@ header p {
 .client-list {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* 카드 사이 간격 축소 */
+    gap: 6px; /* 더 밀착 */
 }
 
 .group-header {
@@ -228,8 +228,8 @@ header p {
     background: var(--card-bg);
     backdrop-filter: blur(8px);
     border: 1px solid var(--glass-border);
-    border-radius: 12px; /* 라운드 소폭 축소 */
-    padding: 10px 14px; /* 여백 축소 */
+    border-radius: 8px; /* 더 각진 느낌으로 */
+    padding: 6px 12px; /* 위아래 여백 최소화 */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -238,12 +238,12 @@ header p {
 }
 
 .client-info h4 {
-    font-size: 0.95rem; /* 폰트 소폭 축소 */
+    font-size: 0.9rem; /* 글자 크기 더 축소 */
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .badge {
@@ -277,9 +277,9 @@ header p {
 }
 
 .btn-check {
-    width: 38px; /* 크기 축소 */
-    height: 38px;
-    border-radius: 10px;
+    width: 30px; /* 초슬림 크기 */
+    height: 30px;
+    border-radius: 8px;
     border: none;
     background: #f1f5f9;
     color: var(--text-muted);
@@ -290,6 +290,11 @@ header p {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.btn-check i, .btn-memo i {
+    width: 14px !important; /* 아이콘 크기 축소 */
+    height: 14px !important;
+}
+
 .btn-check.active {
     background: var(--accent-success);
     color: white;
@@ -297,9 +302,9 @@ header p {
 }
 
 .btn-memo {
-    width: 38px; /* 크기 축소 */
-    height: 38px;
-    border-radius: 10px;
+    width: 30px; /* 초슬림 크기 */
+    height: 30px;
+    border-radius: 8px;
     border: 1px solid var(--glass-border);
     background: transparent;
     color: var(--text-muted);
