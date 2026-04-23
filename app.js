@@ -24,12 +24,28 @@ function getWedStart(date = new Date()) {
 
 const CURRENT_WED_START = getWedStart();
 
-// [추가] 날짜 포맷 정리 함수 (시간 제거)
+// [추가] 날짜 포맷 정리 함수 (시간 제거 및 오류 방지)
 function formatDate(val) {
     if (!val || val === "-") return "-";
-    // ISO string이나 Date 객체, 혹은 문자열에서 날짜 부분만 추출 (YYYY-MM-DD)
-    const dateStr = typeof val === 'string' ? val : new Date(val).toISOString();
-    return dateStr.substring(0, 10);
+    try {
+        // 이미 YYYY-MM-DD 형식인 경우 그대로 반환
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+            return val.substring(0, 10);
+        }
+        // Date 객체이거나 변환 가능한 경우
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+            // 로컬 시간 기준으로 YYYY-MM-DD 추출
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        // 변환 불가능하면 원본 문자열 반환 (예: 800101 등)
+        return String(val).substring(0, 10);
+    } catch (e) {
+        return String(val);
+    }
 }
 
 // Initialize from Google Sheets
