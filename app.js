@@ -67,7 +67,7 @@ async function init() {
     container.innerHTML = `<div class="loading-state" style="text-align: center; color: var(--text-muted); padding: 40px;">데이터 로드 중...</div>`;
 
     try {
-        const response = await fetch(API_URL);
+        const response = await fetch(`${API_URL}?nocache=${new Date().getTime()}`, { cache: "no-store" });
         const result = await response.json();
         
         // [호환성 로직] 서버 배포 전(배열)과 배포 후(객체) 모두 대응
@@ -77,7 +77,11 @@ async function init() {
         
         // 1. 메인 명단 매핑 및 '이번 주 수요일 이후 상담 여부' 판단
         clients = rawClients.map(item => {
-            const lastCheckDate = item["상담일자"] ? new Date(item["상담일자"]) : null;
+            let lastCheckDate = null;
+            if (item["상담일자"]) {
+                const d = new Date(item["상담일자"]);
+                if (!isNaN(d.getTime())) lastCheckDate = d;
+            }
             return {
                 id: item.rowId,
                 name: item["이름"] || item["대상자명"] || "이름 없음",
@@ -191,6 +195,8 @@ function renderList() {
                             <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 2px;">${escapeHTML(roomInfo)}</span>
                             <span class="badge" style="margin-left: auto;">${escapeHTML(client.category)}</span>
                         </h4>
+                        <!-- DEBUG INFO -->
+                        <div style="font-size: 0.65rem; color: red;">RAW상담일자: [${escapeHTML(client._raw["상담일자"])}] / RAW여부: [${escapeHTML(client._raw["상담여부"])}] / 파싱된체크여부: ${client.checkedThisWeek}</div>
                         <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
                             <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(client.birthday)}</span>
                             <div class="manager-info" style="color: var(--primary-light);">
@@ -389,17 +395,47 @@ async function toggleCheck(rowId, type) {
     updateStats();
 
     try {
-        // 벌크 업데이트를 사용하여 상담여부와 상담일자를 한 번에 전송
+        // 벌크 업데이트 (최신 버전 GAS 지원) 및 순차 업데이트 (구버전 GAS 호환성 지원) 동시 진행
+        // 또한 UTC 변환(toISOString)으로 인해 한국의 경우 시간이 9시간 빨라져,
+        // 오전 9시 이전 클릭 시 전날로 기록되어 수요일 초기화가 엇나가는 버그를 방지 (formatDate 사용)
+        const dateStr = newValue ? formatDate(today) : "";
+        
+        // 저장 중 UI 표시
+        const syncBtn = document.getElementById('sync-btn');
+        const syncSpan = syncBtn.querySelector('span');
+        const syncIcon = syncBtn.querySelector('i');
+        if (syncSpan) syncSpan.textContent = "저장 중...";
+        if (syncIcon) syncIcon.style.color = "var(--accent-warning)";
+        
+        // 구글 스크립트 동시 요청 시 락(Lock) 충돌이 발생할 수 있으므로 순차적으로 하나씩 처리합니다.
         await fetch(API_URL, {
             method: "POST",
+            keepalive: true, // 페이지 새로고침 시에도 요청이 끊기지 않도록 유지
             body: JSON.stringify({
+                action: "update",
                 rowId: rowId,
+                columnName: "상담여부",
+                value: newValue,
                 updates: [
                     { columnName: "상담여부", value: newValue },
-                    { columnName: "상담일자", value: newValue ? today.toISOString().split('T')[0] : "" }
+                    { columnName: "상담일자", value: dateStr }
                 ]
             })
         });
+
+        await fetch(API_URL, {
+            method: "POST",
+            keepalive: true,
+            body: JSON.stringify({
+                action: "update",
+                rowId: rowId,
+                columnName: "상담일자", // 구버전 GAS 강제 호환용 추가 기록
+                value: dateStr
+            })
+        });
+
+        if (syncSpan) syncSpan.textContent = "동기화";
+        if (syncIcon) syncIcon.style.color = "";
 
         if (window.navigator.vibrate) window.navigator.vibrate(50);
         if (newValue) {
@@ -407,9 +443,17 @@ async function toggleCheck(rowId, type) {
             if (document.getElementById('stats-view').style.display !== 'none') renderStats();
         }
     } catch (error) {
-        console.error("Save error:", error);
-        alert(`저장 실패: ${error.message || '네트워크 오류'}`);
-        init();
+        if (syncSpan) syncSpan.textContent = "동기화";
+        if (syncIcon) syncIcon.style.color = "";
+        
+        // 사용자가 새로고침을 눌러서 fetch가 강제 취소(Abort)된 경우는 에러 경고창을 띄우지 않음
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            console.warn("User refreshed or network interrupted before save completed.");
+        } else {
+            console.error("Save error:", error);
+            alert(`저장 실패: ${error.message || '네트워크 오류'}`);
+            init();
+        }
     }
 }
 
