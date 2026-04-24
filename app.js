@@ -195,8 +195,6 @@ function renderList() {
                             <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 2px;">${escapeHTML(roomInfo)}</span>
                             <span class="badge" style="margin-left: auto;">${escapeHTML(client.category)}</span>
                         </h4>
-                        <!-- DEBUG INFO -->
-                        <div style="font-size: 0.65rem; color: red;">RAW상담일자: [${escapeHTML(client._raw["상담일자"])}] / RAW여부: [${escapeHTML(client._raw["상담여부"])}] / 파싱된체크여부: ${client.checkedThisWeek}</div>
                         <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
                             <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(client.birthday)}</span>
                             <div class="manager-info" style="color: var(--primary-light);">
