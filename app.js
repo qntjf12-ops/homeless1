@@ -670,4 +670,11 @@ async function addNewClient() {
 
 document.getElementById('search-input').addEventListener('input', (e) => { searchTerm = e.target.value; renderList(); });
 document.getElementById('sync-btn').addEventListener('click', init);
+
+// [추가] 뷰어 모드 체크
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('mode') === 'viewer') {
+    document.body.classList.add('viewer-mode');
+}
+
 window.onload = init;

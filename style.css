@@ -751,3 +751,17 @@ textarea {
     color: var(--primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
+/* Viewer Mode Styles */
+body.viewer-mode #fab-add,
+body.viewer-mode .btn-exception-toggle,
+body.viewer-mode .btn-memo {
+    display: none !important;
+}
+body.viewer-mode .check-group {
+    pointer-events: none !important;
+    opacity: 0.9;
+}
+body.viewer-mode .name-tag {
+    pointer-events: none !important;
+}
