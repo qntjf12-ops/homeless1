@@ -94,6 +94,7 @@ async function init() {
                 checkType: (lastCheckDate && lastCheckDate >= CURRENT_WED_START) ? (item["상담여부"] || "") : "",
                 // [핵심] 이번 주 수요일 00시 이후에 상담 받았는지 체크
                 checkedThisWeek: lastCheckDate && lastCheckDate >= CURRENT_WED_START,
+                medCheck: item["약물/진료"] === "O" || item["약물/진료"] === true || item["약물/진료"] === "완료",
                 memo: item["메모"] || item["비고"] || "",
                 _raw: item 
             };
@@ -207,9 +208,13 @@ function renderList() {
                         <button class="btn-memo" onclick="openDetail(${client.id})">
                             <i data-lucide="file-text"></i>
                         </button>
-                        <div class="check-group">
+                        <div class="check-group" style="align-items: center;">
                             <button class="btn-type btn-visit ${client.checkType === '대면' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '대면')">대면</button>
                             <button class="btn-type btn-absent ${client.checkType === '부재' ? 'active' : ''}" onclick="toggleCheck(${client.id}, '부재')">부재</button>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:0.75rem; margin-left:4px; color:var(--text-muted); cursor:pointer; font-weight: 500;">
+                                <input type="checkbox" ${client.medCheck ? 'checked' : ''} onchange="toggleMedCheck(${client.id}, this.checked)" style="width:16px; height:16px; accent-color: var(--primary); cursor:pointer; margin:0;">
+                                약물/진료
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -451,6 +456,49 @@ async function toggleCheck(rowId, type) {
             console.error("Save error:", error);
             alert(`저장 실패: ${error.message || '네트워크 오류'}`);
             init();
+        }
+    }
+}
+
+// [추가] 약물/진료 체크 토글
+async function toggleMedCheck(rowId, isChecked) {
+    const client = clients.find(c => c.id === rowId);
+    if (!client) return;
+    
+    client.medCheck = isChecked;
+    const newValue = isChecked ? "O" : "";
+    
+    if (window.navigator.vibrate) window.navigator.vibrate(50);
+    
+    const syncBtn = document.getElementById('sync-btn');
+    const syncSpan = syncBtn.querySelector('span');
+    const syncIcon = syncBtn.querySelector('i');
+    if (syncSpan) syncSpan.textContent = "저장 중...";
+    if (syncIcon) syncIcon.style.color = "var(--accent-warning)";
+    
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            keepalive: true,
+            body: JSON.stringify({
+                action: "update",
+                rowId: rowId,
+                columnName: "약물/진료",
+                value: newValue
+            })
+        });
+        
+        if (syncSpan) syncSpan.textContent = "동기화";
+        if (syncIcon) syncIcon.style.color = "";
+    } catch (error) {
+        if (syncSpan) syncSpan.textContent = "동기화";
+        if (syncIcon) syncIcon.style.color = "";
+        
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            console.warn("User refreshed or network interrupted before save completed.");
+        } else {
+            console.error("Save error:", error);
+            alert(`저장 실패: ${error.message || '네트워크 오류'}`);
         }
     }
 }
