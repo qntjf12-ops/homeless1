@@ -22,7 +22,7 @@ function doGet(e) {
     var historySheet = ss.getSheetByName("상담이력");
     if (!historySheet) {
       historySheet = ss.insertSheet("상담이력");
-      historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자"]);
+      historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자", "상담방식"]);
     }
     var historyData = historySheet.getDataRange().getValues().slice(1);
 
@@ -133,14 +133,41 @@ function doPost(e) {
             historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자", "상담방식"]);
           }
           var rowData = sheet.getRange(params.rowId, 1, 1, headersLine.length).getValues()[0];
-          historySheet.appendRow([
-            new Date(), 
-            rowData[headersLine.indexOf("이름")] || "", 
-            rowData[headersLine.indexOf("성별")] || "", 
-            rowData[headersLine.indexOf("거주지") !== -1 ? headersLine.indexOf("거주지") : headersLine.indexOf("주소")] || "", 
-            rowData[headersLine.indexOf("사례 관리자")] || "",
-            update.value // '대면' 또는 '부재' 기록
-          ]);
+          var targetName = rowData[headersLine.indexOf("이름")] || "";
+          
+          var today = new Date();
+          var todayStr = today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
+          
+          var historyData = historySheet.getDataRange().getValues();
+          var updated = false;
+          
+          // 역순으로 탐색하여 오늘 남긴 같은 이름의 기록이 있으면 업데이트
+          for (var i = historyData.length - 1; i > 0; i--) {
+            var hRow = historyData[i];
+            if (!hRow[0]) continue;
+            var hDate = new Date(hRow[0]);
+            if (isNaN(hDate.getTime())) continue;
+            var hDateStr = hDate.getFullYear() + "-" + (hDate.getMonth() + 1) + "-" + hDate.getDate();
+            var hName = hRow[1];
+            
+            if (hName === targetName && hDateStr === todayStr) {
+              historySheet.getRange(i + 1, 1).setValue(today);
+              historySheet.getRange(i + 1, 6).setValue(update.value);
+              updated = true;
+              break;
+            }
+          }
+          
+          if (!updated) {
+            historySheet.appendRow([
+              today, 
+              targetName, 
+              rowData[headersLine.indexOf("성별")] || "", 
+              rowData[headersLine.indexOf("거주지") !== -1 ? headersLine.indexOf("거주지") : headersLine.indexOf("주소")] || "", 
+              rowData[headersLine.indexOf("사례 관리자")] || "",
+              update.value // '대면' 또는 '부재' 기록
+            ]);
+          }
         }
       });
       return ContentService.createTextOutput(JSON.stringify({status: "success", message: "Success Update"})).setMimeType(ContentService.MimeType.JSON);
