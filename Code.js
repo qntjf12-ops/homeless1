@@ -127,7 +127,7 @@ function doPost(e) {
         sheet.getRange(params.rowId, colIndex).setValue(update.value);
 
         // [추가] 상담 완료 시 '상담이력' 시트에 기록
-        if (update.columnName === "상담여부" && (update.value === "대면" || update.value === "부재")) {
+        if (update.columnName === "상담여부") {
           var historySheet = ss.getSheetByName("상담이력") || ss.insertSheet("상담이력");
           if (historySheet.getLastRow() === 0) {
             historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자", "상담방식"]);
@@ -141,32 +141,49 @@ function doPost(e) {
           var historyData = historySheet.getDataRange().getValues();
           var updated = false;
           
-          // 역순으로 탐색하여 오늘 남긴 같은 이름의 기록이 있으면 업데이트
-          for (var i = historyData.length - 1; i > 0; i--) {
-            var hRow = historyData[i];
-            if (!hRow[0]) continue;
-            var hDate = new Date(hRow[0]);
-            if (isNaN(hDate.getTime())) continue;
-            var hDateStr = hDate.getFullYear() + "-" + (hDate.getMonth() + 1) + "-" + hDate.getDate();
-            var hName = hRow[1];
-            
-            if (hName === targetName && hDateStr === todayStr) {
-              historySheet.getRange(i + 1, 1).setValue(today);
-              historySheet.getRange(i + 1, 6).setValue(update.value);
-              updated = true;
-              break;
+          if (update.value === "대면" || update.value === "부재") {
+            // 역순으로 탐색하여 오늘 남긴 같은 이름의 기록이 있으면 업데이트
+            for (var i = historyData.length - 1; i > 0; i--) {
+              var hRow = historyData[i];
+              if (!hRow[0]) continue;
+              var hDate = new Date(hRow[0]);
+              if (isNaN(hDate.getTime())) continue;
+              var hDateStr = hDate.getFullYear() + "-" + (hDate.getMonth() + 1) + "-" + hDate.getDate();
+              var hName = hRow[1];
+              
+              if (hName === targetName && hDateStr === todayStr) {
+                historySheet.getRange(i + 1, 1).setValue(today);
+                historySheet.getRange(i + 1, 6).setValue(update.value);
+                updated = true;
+                break;
+              }
             }
-          }
-          
-          if (!updated) {
-            historySheet.appendRow([
-              today, 
-              targetName, 
-              rowData[headersLine.indexOf("성별")] || "", 
-              rowData[headersLine.indexOf("거주지") !== -1 ? headersLine.indexOf("거주지") : headersLine.indexOf("주소")] || "", 
-              rowData[headersLine.indexOf("사례 관리자")] || "",
-              update.value // '대면' 또는 '부재' 기록
-            ]);
+            
+            if (!updated) {
+              historySheet.appendRow([
+                today, 
+                targetName, 
+                rowData[headersLine.indexOf("성별")] || "", 
+                rowData[headersLine.indexOf("거주지") !== -1 ? headersLine.indexOf("거주지") : headersLine.indexOf("주소")] || "", 
+                rowData[headersLine.indexOf("사례 관리자")] || "",
+                update.value // '대면' 또는 '부재' 기록
+              ]);
+            }
+          } else {
+            // 체크를 해제한 경우 (값이 비어있거나 다른 값일 때), 오늘 기록이 있으면 삭제
+            for (var i = historyData.length - 1; i > 0; i--) {
+              var hRow = historyData[i];
+              if (!hRow[0]) continue;
+              var hDate = new Date(hRow[0]);
+              if (isNaN(hDate.getTime())) continue;
+              var hDateStr = hDate.getFullYear() + "-" + (hDate.getMonth() + 1) + "-" + hDate.getDate();
+              var hName = hRow[1];
+              
+              if (hName === targetName && hDateStr === todayStr) {
+                historySheet.deleteRow(i + 1);
+                break; // 하루치 1개만 삭제하면 되므로 종료
+              }
+            }
           }
         }
       });
