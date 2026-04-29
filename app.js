@@ -517,7 +517,7 @@ function openDetail(id) {
     const mainFields = [
         { key: '이름', label: '성함', value: escapeHTML(client.name) },
         { key: '생년월일', label: '생년월일', value: escapeHTML(formatDate(client.birthday)), type: 'date' },
-        { key: '주소', label: '거주지(건물+호수)', value: escapeHTML(client.address) },
+        { key: '거주지', label: '거주지(건물+호수)', value: escapeHTML(client.address) },
         { key: '분류', label: '분류', value: escapeHTML(client.category) },
         { key: '사례 관리자', label: '담당 관리자', value: escapeHTML(client.manager) }
     ];
