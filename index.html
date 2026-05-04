@@ -37,7 +37,12 @@
                         <div class="stat-item">
                             <h3>이번 주 상담 현황</h3>
                             <div class="value highlight"><span id="checked-count">0</span> / <span id="total-count">0</span></div>
-                            <p id="pending-label" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">수요일 리셋 기준</p>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                                <p id="pending-label" style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">수요일 리셋 기준</p>
+                                <button onclick="manualReset()" style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); color: var(--accent-warning); border: 1px solid var(--accent-warning); cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                                    <i data-lucide="rotate-ccw" style="width: 10px; height: 10px;"></i>강제 리셋
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -187,7 +192,7 @@
     </div>
 
     <!-- App Logic -->
-    <script src="app.js?v=4.3"></script>
+    <script src="app.js?v=4.4"></script>
     <script>
         // Initialize Lucide icons
         lucide.createIcons();

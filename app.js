@@ -668,6 +668,30 @@ async function addNewClient() {
     init();
 }
 
+// [추가] 수동 리셋 기능 (모든 대상자의 상담여부 초기화)
+async function manualReset() {
+    if (!confirm("정말 모든 상담 내역을 초기화하시겠습니까? (이 작업은 되돌릴 수 없으며 상담이력에 수동 리셋 기록이 남습니다)")) return;
+    
+    const syncBtn = document.getElementById('sync-btn');
+    const syncSpan = syncBtn.querySelector('span');
+    const syncIcon = syncBtn.querySelector('i');
+    if (syncSpan) syncSpan.textContent = "초기화 중...";
+    if (syncIcon) syncIcon.style.color = "var(--accent-warning)";
+    
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "manualReset" })
+        });
+        alert("초기화가 완료되었습니다.");
+        init(); // 화면 갱신
+    } catch (error) {
+        console.error("Reset error:", error);
+        alert(`초기화 실패: ${error.message || '네트워크 오류'}`);
+        init();
+    }
+}
+
 document.getElementById('search-input').addEventListener('input', (e) => { searchTerm = e.target.value; renderList(); });
 document.getElementById('sync-btn').addEventListener('click', init);
 

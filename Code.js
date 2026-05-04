@@ -111,7 +111,27 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({status: "success", message: "Success Remove Exception"})).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 5. 기존 셀 수정 모드 (단일 또는 복수 업데이트 지원)
+    // 5. 수동 리셋 모드
+    if (params.action === "manualReset") {
+      var lastColUpdated = sheet.getLastColumn();
+      var headersLine = sheet.getRange(1, 1, 1, lastColUpdated).getValues()[0];
+      var checkColIdx = headersLine.indexOf("상담여부") + 1;
+      var dateColIdx = headersLine.indexOf("상담일자") + 1;
+      
+      if (checkColIdx > 0 && sheet.getLastRow() > 1) sheet.getRange(2, checkColIdx, sheet.getLastRow() - 1, 1).clearContent();
+      if (dateColIdx > 0 && sheet.getLastRow() > 1) sheet.getRange(2, dateColIdx, sheet.getLastRow() - 1, 1).clearContent();
+
+      var historySheet = ss.getSheetByName("상담이력") || ss.insertSheet("상담이력");
+      if (historySheet.getLastRow() === 0) {
+        historySheet.appendRow(["상담일시", "이름", "성별", "거주지", "사례 관리자", "상담방식"]);
+      }
+      var today = new Date();
+      historySheet.appendRow([today, "시스템", "-", "-", "-", "수동 리셋"]);
+
+      return ContentService.createTextOutput(JSON.stringify({status: "success", message: "Success Manual Reset"})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 6. 기존 셀 수정 모드 (단일 또는 복수 업데이트 지원)
     var updates = params.updates || (params.columnName ? [{ columnName: params.columnName, value: params.value }] : []);
     if (updates.length > 0) {
       var lastColUpdated = sheet.getLastColumn();
