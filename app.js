@@ -40,20 +40,46 @@ function escapeHTML(str) {
 function formatDate(val) {
     if (!val || val === "-") return "-";
     try {
+        let str = String(val).trim();
+        
         // 이미 YYYY-MM-DD 형식인 경우 그대로 반환
-        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
-            return val.substring(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+            return str.substring(0, 10);
         }
-        // Date 객체이거나 변환 가능한 경우
+        
+        // 6자리 숫자 (YYMMDD) 처리
+        if (/^\d{6}$/.test(str)) {
+            const yy = parseInt(str.substring(0, 2), 10);
+            const mm = str.substring(2, 4);
+            const dd = str.substring(4, 6);
+            // YY가 40 이하이면 2000년대(20YY), 40보다 크면 1900년대(19YY)
+            const yyyy = (yy <= 40) ? ("20" + str.substring(0, 2)) : ("19" + str.substring(0, 2));
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        
+        // 8자리 숫자 (YYYYMMDD) 처리
+        if (/^\d{8}$/.test(str)) {
+            const yyyy = str.substring(0, 4);
+            const mm = str.substring(4, 6);
+            const dd = str.substring(6, 8);
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        
+        // 순수 숫자(Number 타입)가 타임스탬프로 오해받는 것을 방지
+        if (typeof val === 'number') {
+            const numStr = String(val);
+            if (numStr.length !== 10 && numStr.length !== 13) {
+                return numStr.substring(0, 10);
+            }
+        }
+
         const d = new Date(val);
         if (!isNaN(d.getTime())) {
-            // 로컬 시간 기준으로 YYYY-MM-DD 추출
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-        // 변환 불가능하면 원본 문자열 반환 (예: 800101 등)
         return String(val).substring(0, 10);
     } catch (e) {
         return String(val);
@@ -516,7 +542,7 @@ function openDetail(id) {
     
     const mainFields = [
         { key: '이름', label: '성함', value: escapeHTML(client.name) },
-        { key: '생년월일', label: '생년월일', value: escapeHTML(formatDate(client.birthday)), type: 'date' },
+        { key: '생년월일', label: '생년월일', value: escapeHTML(formatDate(client.birthday)), type: 'text', placeholder: '예: 800101 또는 19800101', inputmode: 'numeric' },
         { key: '거주지', label: '거주지(건물+호수)', value: escapeHTML(client.address) },
         { key: '분류', label: '분류', value: escapeHTML(client.category) },
         { key: '사례 관리자', label: '담당 관리자', value: escapeHTML(client.manager) }
@@ -536,10 +562,12 @@ function openDetail(id) {
     `;
 
     mainFields.forEach(f => {
+        const placeholderAttr = f.placeholder ? `placeholder="${escapeHTML(f.placeholder)}"` : '';
+        const inputmodeAttr = f.inputmode ? `inputmode="${escapeHTML(f.inputmode)}"` : '';
         html += `
             <div class="detail-item" style="${f.key === '주소' ? 'grid-column: span 2;' : ''}">
                 <label>${escapeHTML(f.label)}</label>
-                <input type="${f.type || 'text'}" class="detail-input" data-key="${escapeHTML(f.key)}" value="${f.value || ""}">
+                <input type="${f.type || 'text'}" class="detail-input" data-key="${escapeHTML(f.key)}" value="${f.value || ""}" ${placeholderAttr} ${inputmodeAttr}>
             </div>
         `;
     });
@@ -606,7 +634,12 @@ async function saveDetail() {
     const inputs = document.querySelectorAll('.detail-input');
     const updates = [{ columnName: "메모", value: text }];
     inputs.forEach(input => {
-        updates.push({ columnName: input.getAttribute('data-key'), value: input.value });
+        let val = input.value;
+        const key = input.getAttribute('data-key');
+        if (key === "생년월일" || key === "생일") {
+            val = formatDate(val);
+        }
+        updates.push({ columnName: key, value: val });
     });
 
     closeModal();
@@ -650,10 +683,13 @@ function calculateDates() {
 }
 
 async function addNewClient() {
+    const birthdayVal = document.getElementById('add-birthday').value;
+    const formattedBirthday = formatDate(birthdayVal);
+    
     const data = {
         "이름": document.getElementById('add-name').value,
         "성별": document.getElementById('add-gender').value,
-        "생년월일": document.getElementById('add-birthday').value,
+        "생년월일": formattedBirthday,
         "분류": document.getElementById('add-category').value,
         "거주지": document.getElementById('add-address').value,
         "사례 관리자": document.getElementById('add-manager').value,
@@ -679,10 +715,16 @@ async function manualReset() {
     if (syncIcon) syncIcon.style.color = "var(--accent-warning)";
     
     try {
-        await fetch(API_URL, {
+        const res = await fetch(API_URL, {
             method: "POST",
             body: JSON.stringify({ action: "manualReset" })
         });
+        const result = await res.json();
+        
+        if (result.status !== "success") {
+            throw new Error(result.message || "앱스스크립트 버전이 업데이트되지 않았습니다. 새 배포를 진행해주세요.");
+        }
+        
         alert("초기화가 완료되었습니다.");
         init(); // 화면 갱신
     } catch (error) {

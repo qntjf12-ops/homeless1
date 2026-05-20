@@ -6,7 +6,7 @@
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getActiveSheet();
+    var sheet = ss.getSheets()[0];
     
     // 1. 메인 명단 가져오기
     var data = sheet.getDataRange().getValues();
@@ -58,7 +58,7 @@ function doPost(e) {
   try {
     var params = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getActiveSheet();
+    var sheet = ss.getSheets()[0];
     
     // 1. 신규 행 추가 모드
     if (params.action === "add") {
@@ -117,9 +117,11 @@ function doPost(e) {
       var headersLine = sheet.getRange(1, 1, 1, lastColUpdated).getValues()[0];
       var checkColIdx = headersLine.indexOf("상담여부") + 1;
       var dateColIdx = headersLine.indexOf("상담일자") + 1;
+      var medColIdx = headersLine.indexOf("약물/진료") + 1;
       
       if (checkColIdx > 0 && sheet.getLastRow() > 1) sheet.getRange(2, checkColIdx, sheet.getLastRow() - 1, 1).clearContent();
       if (dateColIdx > 0 && sheet.getLastRow() > 1) sheet.getRange(2, dateColIdx, sheet.getLastRow() - 1, 1).clearContent();
+      if (medColIdx > 0 && sheet.getLastRow() > 1) sheet.getRange(2, medColIdx, sheet.getLastRow() - 1, 1).clearContent();
 
       var historySheet = ss.getSheetByName("상담이력") || ss.insertSheet("상담이력");
       if (historySheet.getLastRow() === 0) {
